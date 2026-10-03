@@ -1,0 +1,25 @@
+{
+  "scenarioId": "scen-test-obj-ident-01",
+  "moduleCode": "MOD-TEST-01",
+  "title": "Object Identification Drill",
+  "description": "Scan horizontal ground surface, tap to place equipment, then identify and inspect the target monitor.",
+  "environmentType": "COAL_SEAM",
+  "hazardLevel": "MEDIUM",
+  "passingScore": 80.0,
+  "totalScenarioTimeLimit": 60.0,
+  "steps": [
+    {
+      "stepId": "step-ident-01",
+      "stepOrder": 1,
+      "title": "Target Equipment Identification",
+      "instructionEn": "Locate and tap on the highlighted safety gas monitor.",
+      "instructionHi": "हाइलाइट किए गए सुरक्षा गैस मॉनिटर को पहचानें और उस पर टैप करें।",
+      "instructionSat": "ᱪᱤᱱᱦᱟᱹᱣ ᱢᱮ ᱟᱨ ᱥᱩᱨᱚᱠᱷᱤᱛ ᱜᱮᱥ ᱢᱚᱱᱤᱴᱚᱨ ᱪᱮᱛᱟᱱ ᱨᱮ ᱴᱤᱯ ᱢᱮ (Gas monitor ñel kate tip me).",
+      "expectedAction": "TAP_OBJECT",
+      "targetObjectId": "TargetEquipment_AR",
+      "timeLimitSeconds": 30.0,
+      "penaltyPoints": 15.0,
+      "hintText": "Move your camera within 1.5 meters of the equipment box and tap it directly."
+    }
+  ]
+}

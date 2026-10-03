@@ -1,0 +1,13 @@
+{
+  "items": [
+    { "key": "ui.scan_surface", "value": "Scan floor surface and tap reticle to place equipment" },
+    { "key": "ui.tap_target", "value": "Tap on the highlighted target equipment" },
+    { "key": "ui.action_success", "value": "Action verified! Procedure successful." },
+    { "key": "ui.action_failure", "value": "Safety violation / sequence error! Deductions applied." },
+    { "key": "ui.reset", "value": "Reset Drill" },
+    { "key": "ui.score", "value": "Score" },
+    { "key": "ui.time_remaining", "value": "Time" },
+    { "key": "ui.passed", "value": "DRILL PASSED" },
+    { "key": "ui.failed", "value": "DRILL FAILED" }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "items": [
+    { "key": "ui.scan_surface", "value": "समतल सतह को स्कैन करें और उपकरण स्थापित करने के लिए टैप करें" },
+    { "key": "ui.tap_target", "value": "दिखाए गए सही सुरक्षा उपकरण पर टैप करें" },
+    { "key": "ui.action_success", "value": "सटीक क्रिया! प्रक्रिया सफलतापूर्वक पूरी हुई।" },
+    { "key": "ui.action_failure", "value": "सुरक्षा उल्लंघन / गलत क्रम! अंक काटे गए।" },
+    { "key": "ui.reset", "value": "पुनः प्रारंभ" },
+    { "key": "ui.score", "value": "अंक" },
+    { "key": "ui.time_remaining", "value": "समय" },
+    { "key": "ui.passed", "value": "प्रशिक्षण उत्तीर्ण" },
+    { "key": "ui.failed", "value": "प्रशिक्षण अनुत्तीर्ण" }
+  ]
+}

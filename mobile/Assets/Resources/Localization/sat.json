@@ -1,0 +1,13 @@
+{
+  "items": [
+    { "key": "ui.scan_surface", "value": "ᱚᱛ ᱯᱟᱥᱱᱟᱣ ᱧᱮᱞ ᱢᱮ ᱟᱨ ᱥᱟᱢᱟᱱ ᱫᱚᱦᱚᱭ ᱞᱟᱹᱜᱤᱫ ᱴᱤᱯ ᱢᱮ (Scan floor surface)" },
+    { "key": "ui.tap_target", "value": "ᱪᱤᱱᱦᱟᱹᱣ ᱠᱟᱛᱮ ᱴᱷᱤᱠ ᱥᱟᱢᱟᱱ ᱪᱮᱛᱟᱱ ᱨᱮ ᱴᱤᱯ ᱢᱮ (Tap target equipment)" },
+    { "key": "ui.action_success", "value": "ᱥᱟᱹᱨᱤ ᱠᱟᱹᱢᱤ! ᱴᱨᱮᱱᱤᱝ ᱴᱷᱤᱠ ᱜᱮᱭᱟ (Action verified)." },
+    { "key": "ui.action_failure", "value": "ᱵᱷᱩᱞ ᱠᱟᱹᱢᱤ! ᱮᱴᱠᱮᱴᱚᱬᱮ ᱦᱩᱭ ᱮᱱᱟ (Safety deduction applied)." },
+    { "key": "ui.reset", "value": "ᱫᱚᱦᱲᱟ ᱮᱦᱚᱵ (Reset)" },
+    { "key": "ui.score", "value": "ᱱᱚᱢᱵᱚᱨ (Score)" },
+    { "key": "ui.time_remaining", "value": "ᱚᱠᱛᱚ (Time)" },
+    { "key": "ui.passed", "value": "ᱯᱟᱥ ᱮᱱᱟ (DRILL PASSED)" },
+    { "key": "ui.failed", "value": "ᱯᱷᱮᱞ ᱮᱱᱟ (DRILL FAILED)" }
+  ]
+}
