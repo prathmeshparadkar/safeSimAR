@@ -86,4 +86,13 @@ export const api = {
   health: {
     check: () => request<any>('/health'),
   },
+
+  attempts: {
+    record: (data: any) =>
+      request<any>('/attempts', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    list: (limit = 20) => request<any[]>(`/attempts?limit=${limit}`),
+  },
 };

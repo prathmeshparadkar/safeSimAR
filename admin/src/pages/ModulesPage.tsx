@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { BookOpen, Flame, Wind, ShieldCheck, RefreshCw } from 'lucide-react';
+import { BookOpen, Flame, Wind, ShieldCheck, RefreshCw, Play } from 'lucide-react';
 import { api } from '../services/api';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorAlert } from '../components/ErrorAlert';
+import { FireDrillSimulatorModal } from '../components/FireDrillSimulatorModal';
 
 export const ModulesPage: React.FC = () => {
   const [modules, setModules] = useState<any[]>([]);
   const [selectedModule, setSelectedModule] = useState<any | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSimulatorOpen, setIsSimulatorOpen] = useState<boolean>(false);
 
   const fetchModules = async () => {
     setLoading(true);
@@ -53,12 +55,20 @@ export const ModulesPage: React.FC = () => {
             Vocational training curriculum standardized under DGMS safety circulars for Jharkhand mines & steel plants.
           </p>
         </div>
-        <button
-          onClick={fetchModules}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-industrial-elevated hover:bg-industrial-hover rounded border border-industrial-border text-xs text-slate-300 transition-colors"
-        >
-          <RefreshCw className="w-3.5 h-3.5" /> Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsSimulatorOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-safety-orange hover:bg-safety-orange-hover rounded font-bold text-xs text-white shadow-md transition-colors"
+          >
+            <Play className="w-3.5 h-3.5 fill-current" /> Launch AR Fire Drill Simulator
+          </button>
+          <button
+            onClick={fetchModules}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-industrial-elevated hover:bg-industrial-hover rounded border border-industrial-border text-xs text-slate-300 transition-colors"
+          >
+            <RefreshCw className="w-3.5 h-3.5" /> Refresh
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -135,9 +145,17 @@ export const ModulesPage: React.FC = () => {
                     <h3 className="text-lg font-bold text-slate-100 mt-1">{selectedModule.title}</h3>
                     <p className="text-xs text-slate-400 font-mono mt-0.5">Code: {selectedModule.code} • v{selectedModule.version}</p>
                   </div>
-                  <span className="text-xs font-mono px-3 py-1 rounded bg-industrial-elevated border border-industrial-border text-slate-300">
-                    Difficulty: <strong className="text-safety-orange">{selectedModule.difficulty}</strong>
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setIsSimulatorOpen(true)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-950/60 hover:bg-red-900/60 border border-red-700/60 text-red-300 rounded text-xs font-semibold shadow-sm transition-colors"
+                    >
+                      <Play className="w-3.5 h-3.5 fill-current" /> Test Fire Drill
+                    </button>
+                    <span className="text-xs font-mono px-3 py-1 rounded bg-industrial-elevated border border-industrial-border text-slate-300">
+                      Difficulty: <strong className="text-safety-orange">{selectedModule.difficulty}</strong>
+                    </span>
+                  </div>
                 </div>
 
                 <div>
@@ -211,6 +229,13 @@ export const ModulesPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Interactive Fire Drill Simulator Modal */}
+      <FireDrillSimulatorModal
+        isOpen={isSimulatorOpen}
+        onClose={() => setIsSimulatorOpen(false)}
+        onAttemptSynced={fetchModules}
+      />
     </div>
   );
 };
