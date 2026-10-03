@@ -1,0 +1,354 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ORG_ADMIN
+  TRAINER
+  WORKER
+}
+
+enum OrgType {
+  MINING
+  STEEL
+  MANUFACTURING
+  MICA_PROCESSING
+}
+
+enum ShiftType {
+  MORNING
+  EVENING
+  NIGHT
+  ROTATIONAL
+}
+
+enum ModuleCategory {
+  FIRE_EXPLOSION
+  GAS_LEAK_CONFINED_SPACE
+  HAZMAT
+  ELECTRICAL
+}
+
+enum DifficultyLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum HazardLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AREnvironment {
+  COAL_SEAM
+  CONFINED_TUNNEL
+  CONVEYOR_BELT
+  CHEMICAL_STORAGE
+}
+
+enum SyncStatus {
+  QUEUED
+  PENDING
+  SYNCED
+  CONFLICT
+  PROCESSED
+  FAILED
+}
+
+enum CertStatus {
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
+
+enum VerifyMethod {
+  QR_SCAN
+  MANUAL_INPUT
+  API
+}
+
+model Organization {
+  id             String            @id @default(uuid())
+  name           String
+  code           String            @unique
+  type           OrgType
+  district       String
+  state          String            @default("Jharkhand")
+  contact_person String
+  contact_email  String
+  is_active      Boolean           @default(true)
+  created_at     DateTime          @default(now())
+  updated_at     DateTime          @updatedAt
+  users          User[]
+  workers        Worker[]
+
+  @@map("organizations")
+}
+
+model User {
+  id              String            @id @default(uuid())
+  organization_id String?
+  email           String            @unique
+  password_hash   String
+  full_name       String
+  role            UserRole          @default(WORKER)
+  phone           String?
+  is_active       Boolean           @default(true)
+  created_at      DateTime          @default(now())
+  updated_at      DateTime          @updatedAt
+
+  organization    Organization?     @relation(fields: [organization_id], references: [id], onDelete: SetNull)
+  worker          Worker?
+  verifications   CertificateVerification[]
+
+  @@index([organization_id])
+  @@map("users")
+}
+
+model Worker {
+  id                        String              @id @default(uuid())
+  user_id                   String              @unique
+  organization_id           String
+  employee_id               String              @unique
+  trade_role                String
+  aadhaar_hash              String?
+  shift                     ShiftType           @default(MORNING)
+  current_safety_level      String              @default("LEVEL_1")
+  total_trainings_completed Int                 @default(0)
+  preferred_language        String              @default("hi")
+  emergency_contact         String?
+  is_active                 Boolean             @default(true)
+  created_at                DateTime            @default(now())
+  updated_at                DateTime            @updatedAt
+
+  user                      User                @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  organization              Organization        @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  attempts                  TrainingAttempt[]
+  assessments               AssessmentResult[]
+  certificates              Certificate[]
+  devices                   Device[]
+  sync_queue                SyncQueue[]
+
+  @@index([organization_id])
+  @@map("workers")
+}
+
+model TrainingModule {
+  id                         String              @id @default(uuid())
+  code                       String              @unique
+  title                      String
+  description                String
+  category                   ModuleCategory
+  difficulty                 DifficultyLevel     @default(INTERMEDIATE)
+  pass_percentage            Float               @default(75.0)
+  estimated_duration_minutes Int                 @default(20)
+  version                    String              @default("1.0.0")
+  is_active                  Boolean             @default(true)
+  created_at                 DateTime            @default(now())
+  updated_at                 DateTime            @updatedAt
+
+  scenarios                  TrainingScenario[]
+  certificates               Certificate[]
+
+  @@map("training_modules")
+}
+
+model TrainingScenario {
+  id                  String            @id @default(uuid())
+  module_id           String
+  scenario_number     Int
+  title               String
+  description         String
+  ar_environment_type AREnvironment
+  hazard_level        HazardLevel       @default(HIGH)
+  passing_score       Float             @default(80.0)
+  created_at          DateTime          @default(now())
+  updated_at          DateTime          @updatedAt
+
+  module              TrainingModule    @relation(fields: [module_id], references: [id], onDelete: Cascade)
+  steps               ScenarioStep[]
+  attempts            TrainingAttempt[]
+
+  @@index([module_id])
+  @@map("training_scenarios")
+}
+
+model ScenarioStep {
+  id                 String            @id @default(uuid())
+  scenario_id        String
+  step_order         Int
+  title              String
+  instruction_en     String
+  instruction_hi     String
+  instruction_sat    String
+  expected_action    String
+  target_ar_object   String
+  time_limit_seconds Int               @default(60)
+  penalty_points     Float             @default(10.0)
+  hint_text          String?
+  created_at         DateTime          @default(now())
+
+  scenario           TrainingScenario  @relation(fields: [scenario_id], references: [id], onDelete: Cascade)
+  attempt_actions    AttemptAction[]
+
+  @@index([scenario_id])
+  @@map("scenario_steps")
+}
+
+model TrainingAttempt {
+  id               String            @id @default(uuid())
+  worker_id        String
+  scenario_id      String
+  attempt_number   Int               @default(1)
+  start_time       DateTime
+  end_time         DateTime?
+  duration_seconds Int?
+  is_offline       Boolean           @default(false)
+  sync_status      SyncStatus        @default(SYNCED)
+  score            Float             @default(0.0)
+  passed           Boolean           @default(false)
+  created_at       DateTime          @default(now())
+  updated_at       DateTime          @updatedAt
+
+  worker           Worker            @relation(fields: [worker_id], references: [id], onDelete: Cascade)
+  scenario         TrainingScenario  @relation(fields: [scenario_id], references: [id], onDelete: Cascade)
+  actions          AttemptAction[]
+  assessment       AssessmentResult?
+  certificate      Certificate?
+
+  @@index([worker_id])
+  @@index([scenario_id])
+  @@map("training_attempts")
+}
+
+model AttemptAction {
+  id                 String          @id @default(uuid())
+  attempt_id         String
+  step_id            String
+  action_timestamp   DateTime        @default(now())
+  action_type        String
+  object_interacted  String
+  is_correct         Boolean
+  reaction_time_ms   Int
+  penalty_applied    Float           @default(0.0)
+  telemetry_json     String?
+  created_at         DateTime        @default(now())
+
+  attempt            TrainingAttempt @relation(fields: [attempt_id], references: [id], onDelete: Cascade)
+  step               ScenarioStep    @relation(fields: [step_id], references: [id], onDelete: Cascade)
+
+  @@index([attempt_id])
+  @@map("attempt_actions")
+}
+
+model AssessmentResult {
+  id                      String          @id @default(uuid())
+  attempt_id              String          @unique
+  worker_id               String
+  total_score             Float
+  max_possible_score      Float           @default(100.0)
+  percentage              Float
+  evaluation_summary      String
+  hazard_awareness_score  Float
+  reaction_speed_score    Float
+  protocol_accuracy_score Float
+  passed                  Boolean
+  evaluated_at            DateTime        @default(now())
+
+  attempt                 TrainingAttempt @relation(fields: [attempt_id], references: [id], onDelete: Cascade)
+  worker                  Worker          @relation(fields: [worker_id], references: [id], onDelete: Cascade)
+
+  @@index([worker_id])
+  @@map("assessment_results")
+}
+
+model Certificate {
+  id                 String                    @id @default(uuid())
+  certificate_number String                    @unique
+  worker_id          String
+  module_id          String
+  attempt_id         String                    @unique
+  issue_date         DateTime                  @default(now())
+  expiry_date        DateTime
+  qr_code_data       String
+  qr_code_image_url  String?
+  digital_signature  String
+  status             CertStatus                @default(ACTIVE)
+  created_at         DateTime                  @default(now())
+  updated_at         DateTime                  @updatedAt
+
+  worker             Worker                    @relation(fields: [worker_id], references: [id], onDelete: Cascade)
+  module             TrainingModule            @relation(fields: [module_id], references: [id], onDelete: Cascade)
+  attempt            TrainingAttempt           @relation(fields: [attempt_id], references: [id], onDelete: Cascade)
+  verifications      CertificateVerification[]
+
+  @@index([worker_id])
+  @@index([certificate_number])
+  @@map("certificates")
+}
+
+model CertificateVerification {
+  id                  String        @id @default(uuid())
+  certificate_id      String
+  verified_by_user_id String?
+  verified_at         DateTime      @default(now())
+  verifier_ip         String?
+  verification_method VerifyMethod  @default(QR_SCAN)
+  is_valid            Boolean
+  notes               String?
+
+  certificate         Certificate   @relation(fields: [certificate_id], references: [id], onDelete: Cascade)
+  verified_by         User?         @relation(fields: [verified_by_user_id], references: [id], onDelete: SetNull)
+
+  @@index([certificate_id])
+  @@map("certificate_verifications")
+}
+
+model Device {
+  id                 String       @id @default(uuid())
+  worker_id          String
+  device_fingerprint String       @unique
+  device_model       String
+  os_version         String
+  ar_core_supported  Boolean      @default(true)
+  app_version        String
+  last_sync_time     DateTime?
+  created_at         DateTime     @default(now())
+  updated_at         DateTime     @updatedAt
+
+  worker             Worker       @relation(fields: [worker_id], references: [id], onDelete: Cascade)
+  sync_items         SyncQueue[]
+
+  @@index([worker_id])
+  @@map("devices")
+}
+
+model SyncQueue {
+  id               String       @id @default(uuid())
+  device_id        String
+  worker_id        String
+  entity_type      String
+  entity_payload   String
+  client_timestamp DateTime
+  server_synced_at DateTime?
+  sync_status      SyncStatus   @default(QUEUED)
+  error_message    String?
+  retry_count      Int          @default(0)
+  created_at       DateTime     @default(now())
+
+  device           Device       @relation(fields: [device_id], references: [id], onDelete: Cascade)
+  worker           Worker       @relation(fields: [worker_id], references: [id], onDelete: Cascade)
+
+  @@index([worker_id])
+  @@index([sync_status])
+  @@map("sync_queue")
+}
