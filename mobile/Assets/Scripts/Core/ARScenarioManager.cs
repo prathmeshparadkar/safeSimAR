@@ -26,6 +26,9 @@ namespace SurakshaAR.Core
         [SerializeField] private GameObject defaultScenarioPrefab;
 
         public event Action<ScenarioState> OnStateChanged;
+        public event Action<StepData> OnStepActionSuccess;
+        public event Action<StepData> OnStepActionFailure;
+        public event Action OnScenarioReset;
         public event Action<AssessmentReport> OnScenarioConcluded;
 
         private ScenarioState currentState = ScenarioState.IDLE;
@@ -43,6 +46,8 @@ namespace SurakshaAR.Core
             else Destroy(gameObject);
 
             if (arCamera == null) arCamera = Camera.main;
+            if (planeManager == null) planeManager = FindObjectOfType<ARPlaneManager>();
+            if (placementReticle == null) placementReticle = FindObjectOfType<ARPlacementReticle>();
         }
 
         private void Start()
@@ -58,6 +63,7 @@ namespace SurakshaAR.Core
             {
                 ScenarioStepManager.Instance.OnStepStarted += HandleStepStarted;
                 ScenarioStepManager.Instance.OnStepCompleted += HandleStepCompleted;
+                ScenarioStepManager.Instance.OnStepTimedOut += HandleStepTimedOut;
             }
 
             // Load default data-driven scenario
@@ -67,7 +73,15 @@ namespace SurakshaAR.Core
             }
             else
             {
-                LoadFallbackTestScenario();
+                TextAsset resJson = Resources.Load<TextAsset>("Scenarios/ObjectIdentificationScenario");
+                if (resJson != null)
+                {
+                    LoadScenarioFromJson(resJson.text);
+                }
+                else
+                {
+                    LoadFallbackTestScenario();
+                }
             }
 
             SetState(ScenarioState.IDLE);
@@ -85,6 +99,7 @@ namespace SurakshaAR.Core
             {
                 ScenarioStepManager.Instance.OnStepStarted -= HandleStepStarted;
                 ScenarioStepManager.Instance.OnStepCompleted -= HandleStepCompleted;
+                ScenarioStepManager.Instance.OnStepTimedOut -= HandleStepTimedOut;
             }
         }
 
@@ -253,6 +268,7 @@ namespace SurakshaAR.Core
         {
             if (currentState != ScenarioState.WAITING_FOR_ACTION) return;
 
+            StepData currentStep = ScenarioStepManager.Instance != null ? ScenarioStepManager.Instance.CurrentStep : null;
             bool isSuccess = false;
             if (ScenarioStepManager.Instance != null)
             {
@@ -264,8 +280,12 @@ namespace SurakshaAR.Core
                 interactable.SetHighlight(true, false);
                 if (InstructionManager.Instance != null)
                 {
-                    InstructionManager.Instance.ShowFeedback("CORRECT ACTION VERIFIED", Color.green);
+                    string successMsg = LocalizationManager.Instance != null
+                        ? LocalizationManager.Instance.GetText("ui.action_success", "CORRECT ACTION VERIFIED")
+                        : "CORRECT ACTION VERIFIED";
+                    InstructionManager.Instance.ShowFeedback(successMsg, Color.green);
                 }
+                OnStepActionSuccess?.Invoke(currentStep);
                 SetState(ScenarioState.ACTION_SUCCESS);
             }
             else
@@ -273,10 +293,30 @@ namespace SurakshaAR.Core
                 interactable.SetHighlight(true, true);
                 if (InstructionManager.Instance != null)
                 {
-                    InstructionManager.Instance.ShowFeedback("HAZARD VIOLATION / INCORRECT TARGET", Color.red);
+                    string failMsg = LocalizationManager.Instance != null
+                        ? LocalizationManager.Instance.GetText("ui.action_failure", "HAZARD VIOLATION / INCORRECT TARGET")
+                        : "HAZARD VIOLATION / INCORRECT TARGET";
+                    InstructionManager.Instance.ShowFeedback(failMsg, Color.red);
                 }
+                OnStepActionFailure?.Invoke(currentStep);
                 SetState(ScenarioState.ACTION_FAILURE);
             }
+        }
+
+        private void HandleStepTimedOut(StepData step)
+        {
+            if (currentState != ScenarioState.WAITING_FOR_ACTION) return;
+
+            if (InstructionManager.Instance != null)
+            {
+                string timeoutMsg = LocalizationManager.Instance != null
+                    ? LocalizationManager.Instance.GetText("ui.step_timeout", "STEP TIMED OUT - PENALTY APPLIED")
+                    : "STEP TIMED OUT - PENALTY APPLIED";
+                InstructionManager.Instance.ShowFeedback(timeoutMsg, Color.red);
+            }
+
+            OnStepActionFailure?.Invoke(step);
+            SetState(ScenarioState.ACTION_FAILURE);
         }
 
         private void HandleStepCompleted(StepData step, bool isCorrect, long reactionMs)
@@ -375,15 +415,21 @@ namespace SurakshaAR.Core
         {
             if (isScenarioPlaced) return;
 
+            bool isProcedural = false;
             GameObject prefabToSpawn = defaultScenarioPrefab;
             if (prefabToSpawn == null)
             {
                 prefabToSpawn = CreateProceduralTestTargetPrefab();
+                isProcedural = true;
             }
 
             if (ARObjectManager.Instance != null)
             {
                 spawnedScenarioInstance = ARObjectManager.Instance.PlaceScenarioPrefab(prefabToSpawn, pose);
+                if (isProcedural && prefabToSpawn != null)
+                {
+                    Destroy(prefabToSpawn);
+                }
                 isScenarioPlaced = true;
                 SetState(ScenarioState.INTRO);
             }
@@ -398,6 +444,20 @@ namespace SurakshaAR.Core
             cube.transform.SetParent(root.transform, false);
             cube.transform.localScale = new Vector3(0.35f, 0.4f, 0.25f);
             cube.transform.localPosition = new Vector3(0f, 0.2f, 0f);
+
+            var rend = cube.GetComponent<Renderer>();
+            if (rend != null)
+            {
+                Shader s = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
+                if (s != null)
+                {
+                    Material mat = new Material(s);
+                    Color equipColor = new Color(0.2f, 0.55f, 0.85f, 1f); // Mining Equipment Blue
+                    if (mat.HasProperty("_Color")) mat.SetColor("_Color", equipColor);
+                    if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", equipColor);
+                    rend.material = mat;
+                }
+            }
 
             ARInteractableObject interactable = cube.AddComponent<ARInteractableObject>();
             return root;
@@ -426,7 +486,35 @@ namespace SurakshaAR.Core
                 ARObjectManager.Instance.ClearScenarioObjects();
             }
 
+            isScenarioPlaced = false;
+            OnScenarioReset?.Invoke();
             SetState(ScenarioState.IDLE);
+        }
+
+        /// <summary>
+        /// Test helper: places scenario in front of the camera if in IDLE state.
+        /// </summary>
+        public void TriggerTestPlacement()
+        {
+            if (currentState != ScenarioState.IDLE) return;
+            Vector3 spawnPos = (arCamera != null ? arCamera.transform.position : Vector3.zero) + Vector3.forward * 1.5f;
+            Quaternion spawnRot = Quaternion.identity;
+            PlaceScenario(new Pose(spawnPos, spawnRot));
+        }
+
+        /// <summary>
+        /// Test helper: triggers simulated interaction with an object ID.
+        /// </summary>
+        public void TriggerTestInteraction(string objectId, string action = "TAP_OBJECT")
+        {
+            if (ARObjectManager.Instance != null)
+            {
+                var target = ARObjectManager.Instance.GetInteractable(objectId);
+                if (target != null && ARInteractionManager.Instance != null)
+                {
+                    ARInteractionManager.Instance.SimulateInteract(target, action);
+                }
+            }
         }
 
         private IEnumerator TransitionAfterDelay(float delay, Action action)

@@ -130,15 +130,22 @@ namespace SurakshaAR.Tests
 
             // Step 8: Final Report & Score Verification
             AssessmentReport report = assessment?.GenerateFinalReport();
-            bool testPassed = report != null && report.totalScore == 100f && report.passed && report.failedSteps == 0;
+            
+            // Persist session to local offline sync queue
+            TextAsset fireJson = Resources.Load<TextAsset>("Scenarios/FireExplosionScenario");
+            ScenarioData scenarioData = fireJson != null ? ScenarioData.FromJson(fireJson.text) : null;
+            CompletedSessionRecord record = session?.ConcludeSession(scenarioData, report);
+
+            bool recordValid = record != null && record.isCompleted && record.passed && !string.IsNullOrEmpty(record.deviceModel);
+            bool testPassed = report != null && report.totalScore == 100f && report.passed && report.failedSteps == 0 && recordValid;
 
             if (testPassed)
             {
-                Debug.Log($"[TEST 1 SUCCESS] Score: {report.totalScore}% | Passed: {report.passed} | Deductions: {report.totalDeductions}");
+                Debug.Log($"[TEST 1 SUCCESS] Score: {report.totalScore}% | Passed: {report.passed} | Deductions: {report.totalDeductions} | Offline Record: {record.sessionId}");
             }
             else
             {
-                Debug.LogError($"[TEST 1 FAILED] Unexpected score: {report?.totalScore}%, Passed: {report?.passed}");
+                Debug.LogError($"[TEST 1 FAILED] Unexpected score: {report?.totalScore}%, Passed: {report?.passed}, Record Valid: {recordValid}");
             }
 
             OnTestCompleted?.Invoke("TestCorrectPath", testPassed);
@@ -199,15 +206,22 @@ namespace SurakshaAR.Tests
 
             // Final Report Check
             AssessmentReport report = assessment?.GenerateFinalReport();
-            bool testPassed = report != null && report.totalScore == 75f && !report.passed && report.failedSteps == 2;
+            
+            TextAsset fireJson = Resources.Load<TextAsset>("Scenarios/FireExplosionScenario");
+            ScenarioData scenarioData = fireJson != null ? ScenarioData.FromJson(fireJson.text) : null;
+            var session = TrainingSessionManager.Instance;
+            CompletedSessionRecord record = session?.ConcludeSession(scenarioData, report);
+
+            bool mistakesLogged = record != null && record.mistakeCount == 2 && record.mistakes.Count == 2 && !record.passed;
+            bool testPassed = report != null && report.totalScore == 75f && !report.passed && report.failedSteps == 2 && mistakesLogged;
 
             if (testPassed)
             {
-                Debug.Log($"[TEST 2 SUCCESS] Incorrect Path Handled Correctly. Score: {report.totalScore}% | Passed: {report.passed} (Expected: False) | Violations: {report.failedSteps}");
+                Debug.Log($"[TEST 2 SUCCESS] Incorrect Path Handled Correctly. Score: {report.totalScore}% | Passed: {report.passed} (Expected: False) | Violations Logged: {record.mistakeCount}");
             }
             else
             {
-                Debug.LogError($"[TEST 2 FAILED] Score: {report?.totalScore}%, Passed: {report?.passed}, Violations: {report?.failedSteps}");
+                Debug.LogError($"[TEST 2 FAILED] Score: {report?.totalScore}%, Passed: {report?.passed}, Violations: {report?.failedSteps}, Mistakes Logged: {mistakesLogged}");
             }
 
             OnTestCompleted?.Invoke("TestIncorrectPath", testPassed);

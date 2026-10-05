@@ -15,6 +15,7 @@ namespace SurakshaAR.Core
 
         public event Action<StepData> OnStepStarted;
         public event Action<StepData, bool, long> OnStepCompleted; // step, isCorrect, reactionMs
+        public event Action<StepData> OnStepTimedOut;
         public event Action<float> OnStepTimerTick;
 
         private List<StepData> steps = new List<StepData>();
@@ -123,7 +124,14 @@ namespace SurakshaAR.Core
             long reactionMs = now - stepStartTimestampMs;
 
             Debug.LogWarning($"[ScenarioStepManager] Step timed out: {step.title}");
+
+            if (!string.IsNullOrEmpty(step.targetObjectId) && ARObjectManager.Instance != null)
+            {
+                ARObjectManager.Instance.HighlightObject(step.targetObjectId, false);
+            }
+
             OnStepCompleted?.Invoke(step, false, reactionMs);
+            OnStepTimedOut?.Invoke(step);
         }
 
         public void StopSteps()

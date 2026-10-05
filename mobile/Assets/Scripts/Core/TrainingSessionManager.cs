@@ -12,12 +12,18 @@ namespace SurakshaAR.Core
         public string workerId;
         public string employeeId;
         public string scenarioId;
+        public string scenarioTitle;
         public string moduleCode;
         public string startTimeIso;
         public string endTimeIso;
         public float durationSeconds;
         public float finalScore;
         public bool passed;
+        public bool isCompleted;
+        public int mistakeCount;
+        public System.Collections.Generic.List<string> mistakes = new System.Collections.Generic.List<string>();
+        public string deviceModel;
+        public string deviceOperatingSystem;
         public bool isOfflineSession;
         public AssessmentReport assessment;
     }
@@ -67,18 +73,36 @@ namespace SurakshaAR.Core
             float duration = Time.time - sessionStartTime;
             string endIso = DateTime.UtcNow.ToString("o");
 
+            System.Collections.Generic.List<string> mistakeDescriptions = new System.Collections.Generic.List<string>();
+            if (report != null && report.actionLog != null)
+            {
+                foreach (var act in report.actionLog)
+                {
+                    if (!act.isCorrect)
+                    {
+                        mistakeDescriptions.Add($"Step: {act.stepId} - Action: {act.actionType} - Target: {act.objectInteracted} - Penalty: {act.penaltyApplied} pts");
+                    }
+                }
+            }
+
             CompletedSessionRecord record = new CompletedSessionRecord
             {
                 sessionId = currentSessionId,
                 workerId = currentWorkerId,
                 employeeId = currentEmployeeId,
                 scenarioId = scenario != null ? scenario.scenarioId : "unknown_scenario",
+                scenarioTitle = scenario != null ? scenario.title : "Unknown Scenario",
                 moduleCode = scenario != null ? scenario.moduleCode : "MOD-UNKNOWN",
                 startTimeIso = sessionStartIso,
                 endTimeIso = endIso,
                 durationSeconds = duration,
                 finalScore = report != null ? report.totalScore : 0f,
                 passed = report != null && report.passed,
+                isCompleted = true,
+                mistakeCount = report != null ? report.failedSteps : 0,
+                mistakes = mistakeDescriptions,
+                deviceModel = SystemInfo.deviceModel,
+                deviceOperatingSystem = SystemInfo.operatingSystem,
                 isOfflineSession = (Application.internetReachability == NetworkReachability.NotReachable),
                 assessment = report
             };

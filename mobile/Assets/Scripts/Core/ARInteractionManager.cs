@@ -82,7 +82,35 @@ namespace SurakshaAR.Core
         private bool IsPointerOverUI(Vector2 screenPosition)
         {
             if (EventSystem.current == null) return false;
+
+            #if !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
+            if (Input.touchCount > 0)
+            {
+                return EventSystem.current.IsPointerOverGameObject(Input.GetTouch(0).fingerId);
+            }
+            #endif
+
             return EventSystem.current.IsPointerOverGameObject();
+        }
+
+        /// <summary>
+        /// Programmatic tap simulation for automated unit testing or editor test scripts.
+        /// </summary>
+        public void SimulateTap(Vector2 screenPosition)
+        {
+            ProcessTap(screenPosition);
+        }
+
+        /// <summary>
+        /// Programmatically triggers action execution on an interactable target.
+        /// </summary>
+        public void SimulateInteract(ARInteractableObject interactable, string actionType = "TAP_OBJECT")
+        {
+            if (interactable != null)
+            {
+                interactable.TriggerInteraction(actionType);
+                OnActionExecuted?.Invoke(interactable, actionType);
+            }
         }
     }
 }

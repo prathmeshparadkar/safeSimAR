@@ -50,10 +50,20 @@ namespace SurakshaAR.Interaction
 
             if (enable)
             {
+                if (highlightInstanceMaterial == null)
+                {
+                    originalMaterial = targetRenderer.material;
+                    highlightInstanceMaterial = new Material(originalMaterial);
+                }
+
                 Color colorToUse = isError ? errorColor : highlightColor;
                 if (highlightInstanceMaterial.HasProperty("_Color"))
                 {
                     highlightInstanceMaterial.SetColor("_Color", colorToUse);
+                }
+                if (highlightInstanceMaterial.HasProperty("_BaseColor"))
+                {
+                    highlightInstanceMaterial.SetColor("_BaseColor", colorToUse);
                 }
                 if (highlightInstanceMaterial.HasProperty("_EmissionColor"))
                 {
@@ -64,7 +74,10 @@ namespace SurakshaAR.Interaction
             }
             else
             {
-                targetRenderer.material = originalMaterial;
+                if (originalMaterial != null)
+                {
+                    targetRenderer.material = originalMaterial;
+                }
             }
         }
 

@@ -36,6 +36,7 @@ namespace SurakshaAR.Modules.FireExplosion
         [SerializeField] private TextAsset fireScenarioJson;
 
         [Header("Runtime State")]
+        [SerializeField] private bool initializeOnStart = false;
         [SerializeField] private bool autoBuildIfMissing = true;
         private bool isInitialized = false;
 
@@ -53,7 +54,10 @@ namespace SurakshaAR.Modules.FireExplosion
 
         private void Start()
         {
-            InitializeModule();
+            if (initializeOnStart)
+            {
+                InitializeModule();
+            }
         }
 
         public void InitializeModule()
@@ -131,7 +135,7 @@ namespace SurakshaAR.Modules.FireExplosion
             fireObj.transform.SetParent(root.transform, false);
             fireObj.transform.localPosition = new Vector3(0f, 0f, 2.0f); // 2m in front
             
-            GameObject flameVisual = GameObject.CreatePrimitive(PrimitiveType.Cone == 0 ? PrimitiveType.Cylinder : PrimitiveType.Sphere);
+            GameObject flameVisual = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             flameVisual.name = "FlameVisual";
             flameVisual.transform.SetParent(fireObj.transform, false);
             flameVisual.transform.localScale = new Vector3(0.5f, 0.8f, 0.5f);
@@ -197,9 +201,45 @@ namespace SurakshaAR.Modules.FireExplosion
             SetObjectField(extinguisherSelector, "co2Extinguisher", co2Obj);
             SetObjectField(extinguisherSelector, "dryPowderExtinguisher", dryObj);
 
-            // 5. P.A.S.S. Suppression Controller
+            // 5. P.A.S.S. Suppression Controller & Physical Sub-components
+            GameObject pinObj = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            pinObj.name = "SafetyPin_AR";
+            pinObj.transform.SetParent(dryObj.transform, false);
+            pinObj.transform.localPosition = new Vector3(0.08f, 0.22f, 0f);
+            pinObj.transform.localScale = new Vector3(0.04f, 0.08f, 0.04f);
+            var pinRenderer = pinObj.GetComponent<Renderer>();
+            if (pinRenderer != null) pinRenderer.material.color = Color.yellow;
+            var pinInteractable = pinObj.AddComponent<ARInteractableObject>();
+            SetObjectField(pinInteractable, "objectId", "SafetyPin_AR");
+            SetObjectField(pinInteractable, "displayName", "Extinguisher Safety Pin");
+            SetObjectField(pinInteractable, "defaultAction", "PULL_PIN");
+
+            GameObject nozObj = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            nozObj.name = "Nozzle_AR";
+            nozObj.transform.SetParent(dryObj.transform, false);
+            nozObj.transform.localPosition = new Vector3(0f, 0.15f, 0.12f);
+            nozObj.transform.localScale = new Vector3(0.05f, 0.1f, 0.05f);
+            var nozRenderer = nozObj.GetComponent<Renderer>();
+            if (nozRenderer != null) nozRenderer.material.color = Color.black;
+            var nozInteractable = nozObj.AddComponent<ARInteractableObject>();
+            SetObjectField(nozInteractable, "objectId", "Nozzle_AR");
+            SetObjectField(nozInteractable, "displayName", "Discharge Nozzle");
+            SetObjectField(nozInteractable, "defaultAction", "AIM_NOZZLE");
+
+            GameObject handleObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            handleObj.name = "DischargeHandle_AR";
+            handleObj.transform.SetParent(dryObj.transform, false);
+            handleObj.transform.localPosition = new Vector3(0f, 0.26f, 0f);
+            handleObj.transform.localScale = new Vector3(0.06f, 0.04f, 0.14f);
+            var handleRenderer = handleObj.GetComponent<Renderer>();
+            if (handleRenderer != null) handleRenderer.material.color = Color.gray;
+            var handleInteractable = handleObj.AddComponent<ARInteractableObject>();
+            SetObjectField(handleInteractable, "objectId", "DischargeHandle_AR");
+            SetObjectField(handleInteractable, "displayName", "Discharge Handle");
+            SetObjectField(handleInteractable, "defaultAction", "SQUEEZE_HANDLE");
+
             passController = dryObj.gameObject.AddComponent<PASSProcedureController>();
-            SetObjectField(passController, "targetFireZone", fireHazard);
+            passController.ConfigureParts(pinInteractable, nozInteractable, handleInteractable, fireHazard);
 
             // 6. Emergency Exit Marker
             GameObject exitObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -300,6 +340,27 @@ namespace SurakshaAR.Modules.FireExplosion
             if (ARScenarioManager.Instance != null)
             {
                 ARScenarioManager.Instance.ResetScenario();
+            }
+        }
+
+        /// <summary>
+        /// Activates the Fire & Explosion training drill within the reusable AR foundation engine.
+        /// Loads FireExplosionScenario.json and sets up the AR environment.
+        /// </summary>
+        public void LaunchFireTrainingDrill()
+        {
+            if (fireScenarioJson == null)
+            {
+                fireScenarioJson = Resources.Load<TextAsset>("Scenarios/FireExplosionScenario");
+            }
+
+            if (fireScenarioJson != null && ARScenarioManager.Instance != null)
+            {
+                ARScenarioManager.Instance.LoadScenarioFromJson(fireScenarioJson.text);
+                BuildProceduralEnvironment();
+                WireEvents();
+                ARScenarioManager.Instance.ResetScenario();
+                Debug.Log("[FireModuleController] Fire & Explosion drill launched successfully.");
             }
         }
     }

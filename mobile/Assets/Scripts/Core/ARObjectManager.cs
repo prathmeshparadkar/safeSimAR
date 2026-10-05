@@ -27,6 +27,11 @@ namespace SurakshaAR.Core
         {
             if (Instance == null) Instance = this;
             else Destroy(gameObject);
+
+            if (anchorManager == null)
+            {
+                anchorManager = FindObjectOfType<ARAnchorManager>();
+            }
         }
 
         public GameObject PlaceScenarioPrefab(GameObject scenarioPrefab, Pose placementPose)
@@ -39,15 +44,23 @@ namespace SurakshaAR.Core
 
             ClearScenarioObjects();
 
-            // Try creating AR Anchor if anchorManager exists
+            // AR Foundation 5.x standard anchor creation
             Transform parentTransform = scenarioRoot;
             if (anchorManager != null)
             {
-                ARAnchor anchor = anchorManager.AddAnchor(placementPose);
+                GameObject anchorGO = new GameObject("AR_Anchor_ScenarioRoot");
+                anchorGO.transform.SetPositionAndRotation(placementPose.position, placementPose.rotation);
+                if (scenarioRoot != null) anchorGO.transform.SetParent(scenarioRoot, true);
+
+                ARAnchor anchor = anchorGO.AddComponent<ARAnchor>();
                 if (anchor != null)
                 {
                     activeAnchors.Add(anchor);
                     parentTransform = anchor.transform;
+                }
+                else
+                {
+                    parentTransform = anchorGO.transform;
                 }
             }
 

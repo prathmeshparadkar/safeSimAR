@@ -49,6 +49,7 @@ namespace SurakshaAR.Core
         {
             activeStep = null;
             OnInstructionUpdated?.Invoke(title, body);
+            OnHintUpdated?.Invoke(string.Empty);
         }
 
         public void ShowFeedback(string message, Color color)

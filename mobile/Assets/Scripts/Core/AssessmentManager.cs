@@ -30,6 +30,8 @@ namespace SurakshaAR.Core
         public static AssessmentManager Instance { get; private set; }
 
         public event Action<float> OnScoreUpdated;
+        public event Action<float, float> OnPenaltyDeducted; // penaltyAmount, remainingScore
+        public event Action<ActionTelemetry> OnActionRecorded;
         public event Action<AssessmentReport> OnAssessmentCompleted;
 
         private float currentScore = 100f;
@@ -86,6 +88,11 @@ namespace SurakshaAR.Core
             );
 
             sessionActions.Add(telemetry);
+            if (penalty > 0f)
+            {
+                OnPenaltyDeducted?.Invoke(penalty, currentScore);
+            }
+            OnActionRecorded?.Invoke(telemetry);
             OnScoreUpdated?.Invoke(currentScore);
 
             Debug.Log($"[AssessmentManager] Action logged. Correct: {isCorrect}, Deduction: {penalty}, Score: {currentScore}%");

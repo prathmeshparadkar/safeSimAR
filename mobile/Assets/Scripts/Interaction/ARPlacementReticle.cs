@@ -22,16 +22,57 @@ namespace SurakshaAR.Interaction
         public bool IsPoseValid => isPoseValid;
         public Pose CurrentPose => currentPose;
 
-        private void Start()
+        private void Awake()
         {
+            if (raycastManager == null)
+            {
+                raycastManager = FindObjectOfType<ARRaycastManager>();
+            }
+
             if (arCamera == null)
             {
                 arCamera = Camera.main;
             }
+
+            if (visualReticle == null)
+            {
+                CreateProceduralReticle();
+            }
+        }
+
+        private void Start()
+        {
             if (visualReticle != null)
             {
                 visualReticle.SetActive(false);
             }
+        }
+
+        private void CreateProceduralReticle()
+        {
+            GameObject reticleGO = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            reticleGO.name = "Procedural_PlacementReticle_Visual";
+            reticleGO.transform.SetParent(transform, false);
+            reticleGO.transform.localScale = new Vector3(0.35f, 0.005f, 0.35f);
+
+            var col = reticleGO.GetComponent<Collider>();
+            if (col != null) Destroy(col);
+
+            var rend = reticleGO.GetComponent<Renderer>();
+            if (rend != null)
+            {
+                Shader s = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color") ?? Shader.Find("Standard");
+                if (s != null)
+                {
+                    Material m = new Material(s);
+                    Color reticleColor = new Color(0.13f, 0.59f, 0.95f, 0.75f);
+                    if (m.HasProperty("_Color")) m.SetColor("_Color", reticleColor);
+                    if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", reticleColor);
+                    rend.material = m;
+                }
+            }
+
+            visualReticle = reticleGO;
         }
 
         private void Update()

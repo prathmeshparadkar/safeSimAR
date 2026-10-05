@@ -44,9 +44,50 @@ namespace SurakshaAR.Modules.FireExplosion
         private int sweepCount = 0;
         private const int REQUIRED_SWEEPS = 3;
 
+        public ARInteractableObject SafetyPin => safetyPin;
+        public ARInteractableObject Nozzle => nozzle;
+        public ARInteractableObject DischargeHandle => dischargeHandle;
+
         public PASSStage CurrentStage => currentStage;
         public bool IsPinRemoved => isPinRemoved;
         public bool IsDischarging => isHandleDepressed && isPinRemoved && isNozzleAimedAtBase;
+
+        private void Start()
+        {
+            WireParts();
+        }
+
+        public void ConfigureParts(ARInteractableObject pin, ARInteractableObject noz, ARInteractableObject handle, FireHazardZone fireZone = null)
+        {
+            safetyPin = pin;
+            nozzle = noz;
+            dischargeHandle = handle;
+            if (fireZone != null) targetFireZone = fireZone;
+            WireParts();
+        }
+
+        public void WireParts()
+        {
+            if (safetyPin != null)
+            {
+                safetyPin.OnInteracted -= HandlePinInteracted;
+                safetyPin.OnInteracted += HandlePinInteracted;
+            }
+            if (nozzle != null)
+            {
+                nozzle.OnInteracted -= HandleNozzleInteracted;
+                nozzle.OnInteracted += HandleNozzleInteracted;
+            }
+            if (dischargeHandle != null)
+            {
+                dischargeHandle.OnInteracted -= HandleHandleInteracted;
+                dischargeHandle.OnInteracted += HandleHandleInteracted;
+            }
+        }
+
+        private void HandlePinInteracted(ARInteractableObject obj, string act) => ExecuteSubAction("PULL_PIN");
+        private void HandleNozzleInteracted(ARInteractableObject obj, string act) => ExecuteSubAction("AIM_NOZZLE");
+        private void HandleHandleInteracted(ARInteractableObject obj, string act) => ExecuteSubAction("SQUEEZE_HANDLE");
 
         public void BeginPASSSequence()
         {

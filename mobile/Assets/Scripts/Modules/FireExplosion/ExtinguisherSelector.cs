@@ -16,6 +16,10 @@ namespace SurakshaAR.Modules.FireExplosion
         [SerializeField] private ARInteractableObject co2Extinguisher;
         [SerializeField] private ARInteractableObject dryPowderExtinguisher;
 
+        public ARInteractableObject WaterExtinguisher => waterExtinguisher;
+        public ARInteractableObject CO2Extinguisher => co2Extinguisher;
+        public ARInteractableObject DryPowderExtinguisher => dryPowderExtinguisher;
+
         public event Action<string, bool> OnExtinguisherSelected; // extinguisherId, isCorrect
 
         private void Start()
